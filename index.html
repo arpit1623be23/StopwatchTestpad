@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Stopwatch</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: 'Orbitron', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            background-color: #1E1E1E;
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 15px 25px rgba(0,0,0,0.5);
+            width: 400px;
+            transition: all 0.3s ease;
+        }
+
+        .time-display {
+            font-size: 3rem;
+            color: #00FFD1;
+            margin-bottom: 30px;
+            text-shadow: 0 0 10px rgba(0,255,209,0.5);
+            letter-spacing: 3px;
+        }
+
+        .buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+        }
+
+        .btn {
+            background-color: #333;
+            color: #fff;
+            border: none;
+            padding: 12px 25px;
+            font-size: 1rem;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Orbitron', sans-serif;
+            text-transform: uppercase;
+        }
+
+        .btn:hover {
+            transform: scale(1.05);
+        }
+
+        .start-btn {
+            background-color: #4CAF50;
+        }
+
+        .stop-btn {
+            background-color: #FF5252;
+        }
+
+        .lap-btn {
+            background-color: #2196F3;
+        }
+
+        .reset-btn {
+            background-color: #FF9800;
+        }
+
+        .lap-list {
+            max-height: 200px;
+            overflow-y: auto;
+            background-color: #2A2A2A;
+            border-radius: 10px;
+            padding: 15px;
+        }
+
+        .lap-item {
+            background-color: #333;
+            color: #fff;
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .lap-item:hover {
+            background-color: #444;
+        }
+
+        /* Scrollbar Styling */
+        .lap-list::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .lap-list::-webkit-scrollbar-track {
+            background: #2A2A2A;
+        }
+
+        .lap-list::-webkit-scrollbar-thumb {
+            background: #555;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="time-display" id="timeDisplay">00:00:00</div>
+        
+        <div class="buttons">
+            <button id="startBtn" class="btn start-btn">Start</button>
+            <button id="lapBtn" class="btn lap-btn">Lap</button>
+        </div>
+        
+        <div class="lap-list" id="lapList"></div>
+    </div>
+
+    <script>
+        class Stopwatch {
+            constructor() {
+                this.timeDisplay = document.getElementById('timeDisplay');
+                this.startBtn = document.getElementById('startBtn');
+                this.lapBtn = document.getElementById('lapBtn');
+                this.lapList = document.getElementById('lapList');
+
+                this.startTime = 0;
+                this.elapsedTime = 0;
+                this.timerInterval = null;
+                this.isRunning = false;
+
+                this.setupEventListeners();
+            }
+
+            setupEventListeners() {
+                this.startBtn.addEventListener('click', () => this.toggleTimer());
+                this.lapBtn.addEventListener('click', () => this.handleLapOrReset());
+            }
+
+            toggleTimer() {
+                if (!this.isRunning) {
+                    this.startTimer();
+                } else {
+                    this.stopTimer();
+                }
+            }
+
+            startTimer() {
+                this.startTime = Date.now() - this.elapsedTime;
+                this.timerInterval = setInterval(() => this.updateDisplay(), 10);
+                this.isRunning = true;
+                this.startBtn.textContent = 'Stop';
+                this.startBtn.classList.remove('start-btn');
+                this.startBtn.classList.add('stop-btn');
+                this.lapBtn.textContent = 'Lap';
+                this.lapBtn.classList.remove('reset-btn');
+                this.lapBtn.classList.add('lap-btn');
+            }
+
+            stopTimer() {
+                clearInterval(this.timerInterval);
+                this.elapsedTime = Date.now() - this.startTime;
+                this.isRunning = false;
+                this.startBtn.textContent = 'Start';
+                this.startBtn.classList.remove('stop-btn');
+                this.startBtn.classList.add('start-btn');
+                this.lapBtn.textContent = 'Reset';
+                this.lapBtn.classList.remove('lap-btn');
+                this.lapBtn.classList.add('reset-btn');
+            }
+
+            updateDisplay() {
+                const currentTime = Date.now() - this.startTime;
+                const minutes = Math.floor(currentTime / 60000);
+                const seconds = Math.floor((currentTime % 60000) / 1000);
+                const milliseconds = Math.floor((currentTime % 1000) / 10);
+
+                this.timeDisplay.textContent = 
+                    `${this.pad(minutes)}:${this.pad(seconds)}:${this.pad(milliseconds)}`;
+            }
+
+            handleLapOrReset() {
+                if (this.isRunning) {
+                    this.recordLap();
+                } else {
+                    this.reset();
+                }
+            }
+
+            recordLap() {
+                const lapTime = this.timeDisplay.textContent;
+                const lapItem = document.createElement('div');
+                lapItem.classList.add('lap-item');
+                lapItem.innerHTML = `
+                    <span>Lap ${this.lapList.children.length + 1}</span>
+                    <span>${lapTime}</span>
+                `;
+                this.lapList.prepend(lapItem);
+            }
+
+            reset() {
+                clearInterval(this.timerInterval);
+                this.timeDisplay.textContent = '00:00:00';
+                this.startTime = 0;
+                this.elapsedTime = 0;
+                this.isRunning = false;
+                this.startBtn.textContent = 'Start';
+                this.startBtn.classList.remove('stop-btn');
+                this.startBtn.classList.add('start-btn');
+                this.lapBtn.textContent = 'Lap';
+                this.lapBtn.classList.remove('reset-btn');
+                this.lapBtn.classList.add('lap-btn');
+                this.lapList.innerHTML = '';
+            }
+
+            pad(number) {
+                return number.toString().padStart(2, '0');
+            }
+        }
+
+        // Initialize the stopwatch
+        const stopwatch = new Stopwatch();
+    </script>
+</body>
+</html>
